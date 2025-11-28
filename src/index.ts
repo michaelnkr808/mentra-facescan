@@ -22,8 +22,6 @@ class MentraOSApp extends AppServer{
             const command = data.text.toLowerCase();
 
             if(command.includes('hey')){
-                console.log("User said hey")
-
                 (async () =>{
                     try{
                         const photo = await session.camera.requestPhoto();
