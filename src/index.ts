@@ -25,7 +25,7 @@ async function extractPersonInfo(conversation: string): Promise<{
     {
         "name": "their name or null if not mentioned",
         "workplace": "where they works/study/major or null",
-        "context": "how/where we met or null"
+        "context": "how/where we met or null",
         "details": "any other notable info or null"
     }`;
 
@@ -67,7 +67,7 @@ class MentraOSApp extends AppServer{
                     const fullConversation = this.conversationBuffer.join(' ');
                     console.log('📝 Farewell detected! Conversation:', fullConversation);
                     session.layouts.showTextWall(`Heard: ${fullConversation}`);
-                    const personInfo = await extractPersonInfo
+                    const personInfo = await extractPersonInfo(fullConversation);
                     console.log('Extracted info:', personInfo);
                     this.conversationBuffer = [];
                     return;
@@ -115,7 +115,10 @@ class MentraOSApp extends AppServer{
                             const fullConversation = this.conversationBuffer.join(' ');
                             console.log('📝 Timeout! Conversation:', fullConversation);
                             session.layouts.showTextWall(`Heard: ${fullConversation}`);
-                            // TODO: Send to Gemini
+                            
+                            const personInfo = await extractPersonInfo(fullConversation);
+                            console.log('📋 Extracted info:', personInfo);
+
                             this.conversationBuffer = [];
                         }
                     }, 20000);
