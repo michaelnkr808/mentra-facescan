@@ -1,10 +1,44 @@
 import { AppServer, AppSession} from '@mentra/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import FormData from 'form-data';
 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? (() => { throw new Error("GEMINI_API_KEY is not set in .env file");});
 const PACKAGE_NAME = process.env.PACKAGE_NAME ?? (() => {throw new Error('PACKAGE_NAME is not set in .env file'); })();
 const MENTRAOS_API_KEY = process.env.MENTRAOS_API_KEY ?? (() => { throw new Error('MENTRAOS_API_KEY is not set in .env file'); })();
 const PORT = parseInt(process.env.PORT || '3000');
 
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+async function extractPersonInfo(conversation: string): Promise<{
+    name?: string;
+    workplace?: string;
+    context?: string;
+    details?: string;
+}> {
+    const model = genAI.getGenerativeModel({model: 'gemini-1.5-flash'});
+
+    const prompt = `
+    I just met someone and had the following conversation after asking, "What's your name?":
+
+    "${conversation}"
+    Extract any information about this person. Return ONLY valid JSON (no markdown, no backticks):
+    {
+        "name": "their name or null if not mentioned",
+        "workplace": "where they works/study/major or null",
+        "context": "how/where we met or null"
+        "details": "any other notable info or null"
+    }`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    try{
+        return JSON.parse(text);
+    } catch {
+        console.error('Failed to parse Gemini response:', text);
+        return {};
+    }
+}
 
 class MentraOSApp extends AppServer{
     private conversationBuffer: string[] = []
@@ -33,7 +67,8 @@ class MentraOSApp extends AppServer{
                     const fullConversation = this.conversationBuffer.join(' ');
                     console.log('📝 Farewell detected! Conversation:', fullConversation);
                     session.layouts.showTextWall(`Heard: ${fullConversation}`);
-                    // TODO: Send to Gemini
+                    const personInfo = await extractPersonInfo
+                    console.log('Extracted info:', personInfo);
                     this.conversationBuffer = [];
                     return;
                 }
